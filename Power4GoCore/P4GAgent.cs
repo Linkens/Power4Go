@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Encog.ML.Data.Basic;
 using Encog.Neural.Networks;
 using Encog.Neural.Networks.Layers;
 
@@ -24,8 +25,14 @@ namespace Power4Go
             Network.Structure.Layers.Add(new BasicLayer(48));
             Network.Structure.Layers.Add(new BasicLayer(48));
             Network.Structure.Layers.Add(new BasicLayer(48));
-            Network.Structure.Layers.Add(new BasicLayer(7));
+            Network.Structure.Layers.Add(new BasicLayer(1));
+            Network.Structure.FinalizeStructure();
+            Network.Reset();
+        }
 
+        public double Score(BasicMLData Input)
+        {
+            return (Network.Compute(Input) as BasicMLData).Data[0];
         }
     }
 }
