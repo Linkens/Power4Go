@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.2005
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Power4GoConsole", "Power4GoConsole\Power4GoConsole.csproj", "{75138061-1128-4990-9215-2AC6C8388896}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Power4GoCore", "Power4GoCore\Power4GoCore.csproj", "{03337A55-68AB-4CDB-A761-CD1A688C3EB8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{75138061-1128-4990-9215-2AC6C8388896}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75138061-1128-4990-9215-2AC6C8388896}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75138061-1128-4990-9215-2AC6C8388896}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75138061-1128-4990-9215-2AC6C8388896}.Release|Any CPU.Build.0 = Release|Any CPU
+		{03337A55-68AB-4CDB-A761-CD1A688C3EB8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{03337A55-68AB-4CDB-A761-CD1A688C3EB8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{03337A55-68AB-4CDB-A761-CD1A688C3EB8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{03337A55-68AB-4CDB-A761-CD1A688C3EB8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3004E749-AAEE-4534-9BB0-CBE33DDAB99D}
+	EndGlobalSection
+EndGlobal
