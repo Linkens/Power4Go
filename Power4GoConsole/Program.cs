@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Power4GoCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,7 +11,9 @@ namespace Power4Go
     {
         static void Main(string[] args)
         {
-            var Agent = new P4GAgent();
+            //var Agent = new P4GAgent();
+            var T = new Trainer();
+            T.StartTraining();
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Encog.ML.Data.Basic;
+using Encog.Neural.Networks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,7 +22,7 @@ namespace Power4GoCore
             var g = new GameState();
             g.Available = new int[] { 0,0,0,0,0,0,0};
             g.Grid = new List<List<double>>();
-            for (int i = 1; i < 7; i++)
+            for (int i = 1; i <= 7; i++)
             {
                 g.Grid.Add(new List<double> { 0, 0, 0, 0, 0, 0 });
             }
@@ -34,7 +35,7 @@ namespace Power4GoCore
             var g = (GameState)MemberwiseClone();
             g.Available = Available.ToArray();
             g.Grid = new List<List<double>>();
-            for (int i = 1; i < 7; i++)
+            for (int i = 0; i < 7; i++)
             {
                 g.Grid.Add(Grid[i].ToList());
             }
@@ -61,7 +62,6 @@ namespace Power4GoCore
             return l.ToArray();
         }
 
-
         public void ComputeState()
         {
             var Player1 = new List<GamePosition>();
@@ -71,8 +71,8 @@ namespace Power4GoCore
                 for (byte j = 0; j < 6; j++)
                 {
                     var Value = Grid[i][j];
-                    if (Value > 1) Player1.Add(new GamePosition(i, j));
-                    else if (Value < 1) Player2.Add(new GamePosition(i, j));
+                    if (Value > 0) Player1.Add(new GamePosition(i, j));
+                    else if (Value < 0) Player2.Add(new GamePosition(i, j));
                 }
             }
             var Chain1 = ChainOfFour(Player1);
@@ -96,6 +96,10 @@ namespace Power4GoCore
             public bool Equals(GamePosition obj)
             {
                 return obj.X==X && obj.Y==Y;
+            }
+            public override string ToString()
+            {
+                return string.Format("{0}:{1}",X,Y);
             }
         }
         private enum FourDirection
@@ -123,6 +127,10 @@ namespace Power4GoCore
                 if (Direction == FourDirection.AntiSlash) if (Chain.Any(p => pNew.Y - p.Y == -1 && pNew.X - p.Y == 1)) { Chain.Add(pNew); return true; };
                 return false;
             }
+            public override string ToString()
+            {
+                return Direction.ToString() + " " + string.Join(",",Chain.Select(x=>x.ToString()).ToArray());
+            }
         }
 
         private int ChainOfFour(List<GamePosition> List)
@@ -133,15 +141,18 @@ namespace Power4GoCore
                 var Bool = Chains.Where(x => x.IsContituent(item)).Any();
                 if (!Bool)
                 {
-                    var Near = List.Where( point => !point.Equals(item) && point.X - item.X < 2 && point.Y - item.Y < 2).ToList();
+                    var Near = List.Where( point => !point.Equals(item) &&  Math.Abs(item.X - point.X) < 2 && Math.Abs(item.Y - point.Y) < 2).ToList();
                     foreach (var p in Near)
                     {
                         Chains.Add(new FourChain(item, p));
                     }
                 }
             }
-            return Chains.Select(x => x.Chain.Count).Max();
+            return Chains.Any() ? Chains.Select(x => x.Chain.Count).Max() : 0 ;
         }
-
+        public double GetScore(BasicNetwork NN)
+        {
+            return ((BasicMLData)NN.Compute(GetData()))[0];
+        }
     }
 }

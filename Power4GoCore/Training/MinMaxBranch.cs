@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Encog.Neural.Networks;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,44 +9,38 @@ namespace Power4GoCore
 {
     public class MinMaxBranch
     {
-        private GameState State;
-        private int Steps;
-        public double Score { get; private set; }
-        public MinMaxBranch(GameState InitialStep, int Depth)
-        {
-            State = InitialStep;
-            Steps = Depth;
-        }
-        public GameState GetBest()
-        {
-            var CurrentDeph = Steps;
-            var First = GetPossible(State, 1);
-            if (First.Any(x => x.Winner == 1)) return First.First(x => x.Winner == 1);
-            var Current = First;
-            while (CurrentDeph > 0)
-            {
-                var Adversary = new List<GameState>();
-                foreach (var item in Current) Adversary.AddRange(GetPossible(item, -1));
-                CurrentDeph--;
-            }
+        private MinMaxBranch Master;
+        public GameState Head { get; private set; }
+        public List<MinMaxBranch> Leafs { get; private set; }
+        public double Player;
+        public double Score;
 
-
-            return First[0];
-
-        }
-        public List<GameState> GetPossible(GameState State, double Player)
+        public MinMaxBranch(GameState head, double PlayerNumber, MinMaxBranch CurrentMaster = null)
         {
-            var L = new List<GameState>();
-            for (int i = 0; i < 6; i++)
-            {
-                if (State.Available[i] < 5)
-                {
-                    var NewGame = State.PutOne(i, Player);
-                    NewGame.ComputeState();
-                    L.Add(NewGame);
-                }
-            }
-            return L;
+            Master = CurrentMaster;
+            Player = PlayerNumber;
+            Head = head;
+            Leafs = new List<MinMaxBranch>();
         }
+
+        public void Generate()
+        {
+            Leafs = MinMaxAlgorithm.GetPossible(Head, Player).Select(x => new MinMaxBranch(x, Player * -1, this)).ToList();
+            foreach (var item in Leafs) item.Head.ComputeState();
+        }
+
+        public GameState GetFirstChoice()
+        {
+            var Current = this;
+            while (Current.Master != null) Current = Current.Master;
+            return Current.Head;
+        }
+
+        public double GetScore()
+        {
+            Score = Leafs.Any() ? Leafs.Min(x => x.Score) : 0;
+            return Score;
+        }
+
     }
 }

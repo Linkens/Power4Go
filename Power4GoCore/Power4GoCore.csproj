@@ -43,8 +43,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Game\GameState.cs" />
     <Compile Include="P4GAgent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Training\GenomeFactory.cs" />
+    <Compile Include="Training\MinMaxAlgorithm.cs" />
+    <Compile Include="Training\MinMaxBranch.cs" />
+    <Compile Include="Training\Trainer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
