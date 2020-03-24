@@ -17,6 +17,9 @@ namespace Power4GoPlayer
                     if(Player > 0)
                     {
                         Console.WriteLine("Your turn");
+                        Console.WriteLine("0123456");
+                        g.State.PrintDebug();
+
                         int Val;
                         string Input; 
                         do
@@ -32,9 +35,10 @@ namespace Power4GoPlayer
                         g.ComputerTurn();
                     }
                     Player *= -1;
-                    g.State.PrintDebug();
                 }
-                Console.WriteLine("Winner is player : " + g.State.Winner);
+                    g.State.PrintDebug();
+                Console.WriteLine("Winner is player : " + g.State.Winner + "Press key to start a new one");
+                Console.ReadKey();
             }
         }
     }

@@ -13,7 +13,7 @@ namespace Power4GoCore
         public int[] Available { get; private set; }
         private List<List<double>> Grid;
         public int Winner { get; private set; }
-        public byte BestChain { get; private set; }
+        public int BestChain { get; private set; }
         public string Winning { get; private set; }
         public bool IsOver { get; private set; }
         public bool IsDraw { get; private set; }
@@ -73,14 +73,15 @@ namespace Power4GoCore
             var p = new GamePosition((byte)Index, (byte)Available[Index]);
             if (Value > 0)
             {
+                ChainOfFour(g.Player1.Positions, g.Player1.Chains,p);
                 g.Player1.Positions.Add(p);
-                ChainOfFour(g.Player1.Positions, g.Player1.Chains);
             }
             else
             {
+                ChainOfFour(g.Player2.Positions, g.Player2.Chains,p);
                 g.Player2.Positions.Add(p);
-                ChainOfFour(g.Player2.Positions, g.Player2.Chains);
             }
+            g.BestChain = g.Player1.Chains.Any() ? g.Player1.Chains.Max(x => x.Chain.Count): 0;
             g.Available[Index]++;
             g.Round++;
             return g;
@@ -125,7 +126,7 @@ namespace Power4GoCore
             public PlayerState Clone()
             {
                 var p =(PlayerState) MemberwiseClone();
-                p.Chains = Chains.ToList();
+                p.Chains = Chains.Select(x=>x.Clone()).ToList();
                 p.Positions = Positions.ToList();
                 return p;
             }
@@ -158,6 +159,7 @@ namespace Power4GoCore
             public List<GamePosition> Chain { get; private set; }
             public FourChain(GamePosition p1, GamePosition p2)
             {
+                if (p2.Y < p1.Y) (p1, p2) = (p2, p1);
                 Chain = new List<GamePosition>() { p1, p2 };
                 if (p1.X == p2.X) Direction = FourDirection.Vertical;
                 else if (p1.Y == p2.Y) Direction = FourDirection.Horizontal;
@@ -185,24 +187,28 @@ namespace Power4GoCore
             {
                 return (c.Chain.All(x => Chain.Any(y=>y.Equals(x))));
             }
+
+            public FourChain Clone()
+            {
+                var f = (FourChain)MemberwiseClone();
+                f.Chain = Chain.ToList();
+                return f;
+            }
          
         }
 
-        private void ChainOfFour(List<GamePosition> List, List<FourChain> Chains)
+        private void ChainOfFour(List<GamePosition> List, List<FourChain> Chains,GamePosition NewPoint )
         {
-            foreach (var item in List)
-            {
-                var Bool = Chains.Where(x => x.IsContituent(item)).Any();
+                var Bool = Chains.Where(x => x.IsContituent(NewPoint)).Any();
                 if (!Bool)
                 {
-                    var Near = List.Where( point => !point.Equals(item) &&  Math.Abs(item.X - point.X) < 2 && Math.Abs(item.Y - point.Y) < 2).ToList();
+                    var Near = List.Where( point => !point.Equals(NewPoint) &&  Math.Abs(NewPoint.X - point.X) < 2 && Math.Abs(NewPoint.Y - point.Y) < 2).ToList();
                     foreach (var p in Near)
                     {
-                        var c = new FourChain(item, p);
+                        var c = new FourChain(NewPoint, p);
                         if (!Chains.Any(x => x.IsSame(c))) Chains.Add(c);
                     }
                 }
-            }
         }
         public double GetScore(BasicNetwork NN)
         {

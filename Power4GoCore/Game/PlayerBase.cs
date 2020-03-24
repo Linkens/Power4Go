@@ -9,7 +9,7 @@ namespace Power4GoCore
 {
     public abstract class PlayerBase
     {
-        public int BaseScore;
+        public double BaseScore;
         public abstract GameState RunOneStep(GameState CurrentStart, double PlayerNumber);
     }
     public class PlayerDumb : PlayerBase
