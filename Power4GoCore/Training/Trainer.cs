@@ -1,21 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Encog.ML.Genetic.Crossover;
-using Encog.ML.Genetic.Mutate;
-using System.Threading.Tasks;
+﻿using Encog.MathUtil.Randomize;
+using Encog.ML.EA.Population;
+using Encog.ML.EA.Species;
 using Encog.ML.Genetic;
-using Encog.ML.Genetic.Genome;
-using Encog.MathUtil.Randomize;
 using Encog.ML.Train;
-using Encog.ML;
-using Encog.ML.Data;
 using Encog.ML.Train.Strategy;
-using Encog.Neural.Networks.Training.Propagation;
 using Encog.Neural.Networks;
 using Encog.Neural.Networks.Layers;
-using Encog.Neural.Networks.Training;
-using Encog.ML.Data.Basic;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Power4GoCore
 {
@@ -27,8 +20,10 @@ namespace Power4GoCore
 
         public void StartTraining()
         {
-            var Scorer = new GameScore(GetNetwork());
-            var Trainer = new MLMethodGeneticAlgorithm(GetNetwork, Scorer, 100);
+            var Scorer = new GameScore();
+            var Trainer = new MLMethodGeneticAlgorithm(GetNetwork, Scorer, 20) { ThreadCount = 1 };
+            
+
             //Trainer.ThreadCount = 1;
             var s = new BestStrategy();
             s.Init(Trainer);
@@ -36,129 +31,71 @@ namespace Power4GoCore
             for (int i = 0; i < 1000; i++)
             {
                 Trainer.Iteration();
-            }
+                Console.WriteLine(string.Format("Epoch {0} finished : {1} Hash : {2}",i ,Trainer.Genetic.BestGenome.Score, Trainer.Genetic.BestGenome.GetHashCode()));
+                if ((i % 10) == 0) SaveTrainer(Trainer);
+        }
+            SaveTrainer(Trainer);
             System.IO.File.WriteAllText(@".\Result.txt", Trainer.Genetic.BestGenome.ToString());
+        }
+
+        void SaveTrainer(MLMethodGeneticAlgorithm Trainer)
+        {
+            var Basic = ((Trainer.Genetic.BestGenome as MLMethodGenome).Phenotype as BasicNetwork);
+            Encog.Persist.EncogDirectoryPersistence.SaveObject(new System.IO.FileInfo("./Network.net"), Basic);
         }
         public class BestStrategy : IStrategy
         {
+            List<Adversaries> Adversaries;
             MLMethodGeneticAlgorithm Method;
             public void Init(IMLTrain train)
             {
                 Method = (MLMethodGeneticAlgorithm)train;
+                var r = new RangeRandomizer(-1, 1);
+                Adversaries = new List<Adversaries>();
+                var l = new List<double>();
+                //for (int i = 0; i < 1000; i++)
+                //{
+                //    l.Add((double)r.NextDouble());
+                //}
+                for (int i = 0; i < 6; i++)
+                {
+                    Adversaries.Add(new Adversaries() { PlayerStart = r.NextDouble() >= 0.5 ? 1.0 : -1.0, Player=new PlayerVertical(i)});
+                    Adversaries.Add(new Adversaries() { PlayerStart = r.NextDouble() >= 0.5 ? 1.0 : -1.0, Player=new PlayerHorizontal(i)});
+                }
             }
 
             public void PostIteration()
             {
-                Method.Genetic.ScoreFunction = new GameScore((BasicNetwork)Method.Method);
+                //Method.Genetic.ScoreFunction = new GameScore((BasicNetwork)Method.Method);
             }
 
             public void PreIteration()
             {
+                var s = Method.Genetic.ScoreFunction as GameScore;
+                var r = new RangeRandomizer(-1, 1);
+                s.Adversaries = Adversaries;
+                //s.Adversaries = Method.Genetic.Population.Flatten().Select(
+                //    x => new Adversaries { Player = new PlayerNetwork((x as MLMethodGenome).Phenotype as BasicNetwork), PlayerStart = r.NextDouble() >= 0.5 ? 1.0 : -1.0 }).ToList();
+                //s.Adversaries.AddRange(Adversaries);
             }
+
         }
 
-        BasicNetwork GetNetwork()
+        static BasicNetwork GetNetwork()
         {
             var Network = new BasicNetwork();
             //{ BiasActivation = 1.0 };
-            Network.Structure.Layers.Add(new BasicLayer(42));
-            Network.Structure.Layers.Add(new BasicLayer(42));
-            Network.Structure.Layers.Add(new BasicLayer(36));
-            Network.Structure.Layers.Add(new BasicLayer(24));
-            Network.Structure.Layers.Add(new BasicLayer(1));
+            var Ac = new Encog.Engine.Network.Activation.ActivationSigmoid();
+            Network.Structure.Layers.Add(new BasicLayer(Ac, true,42)) ;
+            Network.Structure.Layers.Add(new BasicLayer(Ac, true, 42));
+            Network.Structure.Layers.Add(new BasicLayer(Ac, true, 36));
+            Network.Structure.Layers.Add(new BasicLayer(Ac, true, 24));
+            Network.Structure.Layers.Add(new BasicLayer(Ac, true, 1));
+          
             Network.Structure.FinalizeStructure();
             Network.BiasActivation = 1.0;
             Network.Reset();
             return Network;
         }
-        public class GameScore : ICalculateScore
-        {
-            public GameScore ( BasicNetwork Adversary) { Player2 = Adversary; }
-            BasicNetwork Player2;
-            BasicNetwork Player1;
-            public bool ShouldMinimize => false;
-
-            public bool RequireSingleThreaded => false;
-
-            public double CalculateScore(IMLMethod network)
-            {
-                Player1 = (BasicNetwork)network;
-                var Round = 0;
-                var CurrentPlayer = new RangeRandomizer(-1, 1).NextDouble() >= 0 ? 1.0 : -1.0;
-                var Game = GameState.NewGame();
-                while (!Game.IsOver)
-                {
-                    Round++;
-                    Game = PlayCycle(Game, CurrentPlayer);
-                    CurrentPlayer = CurrentPlayer * -1;
-                }
-                var Score=0.0;
-                if (Game.Winner == 1) Score = 100 + 36 - Math.Floor( Round/2.0)*2.0;
-                else if (Game.Winner == -1) Score = -100 + Game.BestChain;
-                else Score += Game.BestChain;
-                return Score;
-            }
-            private GameState PlayCycle(GameState Game, double Player) {
-                var Network = Player > 0 ? Player1 : Player2;
-                var Algo = new MinMaxAlgorithm(Game, 2,Player);
-                return Algo.GetBest(Network);
-            }
-        }
-
-            //private GameState PlayOnce(BasicNetwork Network, GameState Game)
-            //{
-            //    var g= GetMax(Network,Game);
-            //    g=GetMax(Network,g);
-            //    g=GetMax(Network,g);
-            //    return g;
-            //}
-
-            //private GameState GetMax(BasicNetwork Network, GameState game)
-            //{
-            //    List<GameState> L = OneStep(game, Network, 1, out List<double> Scores);
-            //    GameState Max = L[0];
-            //    var MaxValue = double.MinValue;
-            //    for (int i = 0; i < Scores.Count; i++)
-            //    {
-            //        if (MaxValue < Scores[i])
-            //        {
-            //            MaxValue = Scores[i];
-            //            Max = L[i];
-            //        }
-            //    }
-            //    return Max;
-            //}
-            //private GameState GetMin(BasicNetwork Network, GameState game)
-            //{
-            //    List<GameState> L = OneStep(game, Network, -1, out List<double> Scores);
-            //    GameState Min = L[0];
-            //    var MinValue = double.MaxValue;
-            //    for (int i = 0; i < Scores.Count; i++)
-            //    {
-            //        if (MinValue > Scores[i])
-            //        {
-            //            MinValue = Scores[i];
-            //            Min = L[i];
-            //        }
-            //    }
-            //    return Min;
-            //}
-            //private List<GameState> OneStep(GameState Game, BasicNetwork Network, double Player, out List<double> Score)
-            //{
-            //    var L = new List<GameState>();
-            //    var S = new List<double>();
-            //    for (int i = 0; i < 6; i++)
-            //    {
-            //        if (Game.Available[i] < 5) {
-            //            var NewGame = Game.PutOne(i, Player);
-            //            L.Add(NewGame);
-            //            S.Add(Network.Compute(NewGame.GetData())[0]);
-            //        }
-            //    }
-            //    Score = S;
-            //    return L;
-            //}
-        
-
     }
 }

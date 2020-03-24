@@ -25,7 +25,8 @@ namespace Power4GoCore
             var CurrentDepth = Steps;
             var First = GetPossible(State, Player);
             if (First.Any(x => x.Winner == 1)) return First.First(x => x.Winner == 1);
-            var Current = First.Select(x=>new MinMaxBranch(x,Player)).ToList();
+            if (First.Count == 1) return First.First();
+            var Current = First.Select(x=>new MinMaxBranch(x,Player*-1)).ToList();
             List<MinMaxBranch> Next;
             var FirstBool = true;
             while (CurrentDepth > 0)
@@ -43,6 +44,7 @@ namespace Power4GoCore
                 foreach (var item in Current) item.Generate();
                 FirstBool = false;
                 CurrentDepth--;
+                if (Current.Any(x => x.Head.IsOver)) CurrentDepth = 0;
             }
             var BestState = GetMinMax(Current, Network);
             return BestState;
@@ -50,7 +52,13 @@ namespace Power4GoCore
 
         private GameState GetMinMax(List<MinMaxBranch> Branches,BasicNetwork Network)
         {
-            foreach (var b in Branches) foreach (var l in b.Leafs) l.Score = ((BasicMLData)Network.Compute(l.Head.GetData())).Data[0];
+            foreach (var b in Branches) {
+                foreach (var l in b.Leafs)
+                {
+                    var Compute = ((BasicMLData)Network.Compute(l.Head.GetData()));
+                l.Score = Compute.Data[0];
+                }
+                    }
             return Branches.OrderBy(x => x.GetScore()).First().GetFirstChoice();
         }
 
@@ -58,9 +66,9 @@ namespace Power4GoCore
         public static List<GameState> GetPossible(GameState State, double Player)
         {
             var L = new List<GameState>();
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 7; i++)
             {
-                if (State.Available[i] < 5)
+                if (State.Available[i] < 6)
                 {
                     var NewGame = State.PutOne(i, Player);
                     NewGame.ComputeState();
