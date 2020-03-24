@@ -18,10 +18,16 @@ namespace Power4GoCore
         public bool IsOver { get; private set; }
         public bool IsDraw { get; private set; }
         public int Round { get; set; }
+        private PlayerState Player1;
+        private PlayerState Player2;
 
         public static GameState NewGame()
         {
             var g = new GameState();
+            g.Player1 = new PlayerState();
+            g.Player1.Init(); 
+            g.Player2 = new PlayerState();
+            g.Player2.Init();
             g.Round = 0;
             g.Available = new int[] { 0,0,0,0,0,0,0};
             g.Grid = new List<List<double>>();
@@ -55,6 +61,8 @@ namespace Power4GoCore
         {
             
             var g = (GameState)MemberwiseClone();
+            g.Player1 = Player1.Clone();
+            g.Player2 = Player2.Clone();
             g.Available = Available.ToArray();
             g.Grid = new List<List<double>>();
             for (int i = 0; i < 7; i++)
@@ -62,6 +70,17 @@ namespace Power4GoCore
                 g.Grid.Add(Grid[i].ToList());
             }
             g.Grid[Index][Available[Index]]= Value;
+            var p = new GamePosition((byte)Index, (byte)Available[Index]);
+            if (Value > 0)
+            {
+                g.Player1.Positions.Add(p);
+                ChainOfFour(g.Player1.Positions, g.Player1.Chains);
+            }
+            else
+            {
+                g.Player2.Positions.Add(p);
+                ChainOfFour(g.Player2.Positions, g.Player2.Chains);
+            }
             g.Available[Index]++;
             g.Round++;
             return g;
@@ -87,23 +106,29 @@ namespace Power4GoCore
 
         public void ComputeState()
         {
-            var Player1 = new List<GamePosition>();
-            var Player2 = new List<GamePosition>();
-            for (byte i = 0; i < 7; i++)
-            {
-                for (byte j = 0; j < 6; j++)
-                {
-                    var Value = Grid[i][j];
-                    if (Value > 0) Player1.Add(new GamePosition(j, i));
-                    else if (Value < 0) Player2.Add(new GamePosition(j, i));
-                }
-            }
-            var Chain1 = ChainOfFour(Player1);
-            BestChain = (Chain1 != null) ? (byte)Chain1.Chain.Count : (byte)0;
-            var Chain2 = ChainOfFour(Player2);
-            if(Chain1 !=null && Chain1.Chain.Count >3) { Winner = 1; Winning = Chain1.ToString(); IsOver = true; IsDraw = false; }
-            else if( Chain2 != null && Chain2.Chain.Count > 3) { Winner = -1; Winning = Chain2.ToString(); IsOver = true; IsDraw = false; }
+            var Chain1 = Player1.Chains.Any() ? Player1.Chains.OrderBy(x => x.Chain.Count).Last(): null;
+            var Chain2 = Player2.Chains.Any() ? Player2.Chains.OrderBy(x => x.Chain.Count).Last() : null;
+            if (Chain1 != null && Chain1.Chain.Count >3) { Winner = 1; Winning = Chain1.ToString(); IsOver = true; IsDraw = false; }
+            else if(Chain2 != null && Chain2.Chain.Count > 3) { Winner = -1; Winning = Chain2.ToString(); IsOver = true; IsDraw = false; }
             else if (Grid.Sum(x => x.Where(y=>y!=0.0).Count()) >= 42) { IsOver = true; IsDraw = true; }
+        }
+        private class PlayerState
+        {
+            public List<FourChain> Chains;
+            public List<GamePosition> Positions;
+            public void Init()
+            {
+                Chains = new List<FourChain>();
+                Positions = new List<GamePosition>();
+            }
+            
+            public PlayerState Clone()
+            {
+                var p =(PlayerState) MemberwiseClone();
+                p.Chains = Chains.ToList();
+                p.Positions = Positions.ToList();
+                return p;
+            }
         }
         private class GamePosition
         {
@@ -163,9 +188,8 @@ namespace Power4GoCore
          
         }
 
-        private FourChain ChainOfFour(List<GamePosition> List)
+        private void ChainOfFour(List<GamePosition> List, List<FourChain> Chains)
         {
-            List<FourChain> Chains = new List<FourChain>();
             foreach (var item in List)
             {
                 var Bool = Chains.Where(x => x.IsContituent(item)).Any();
@@ -179,12 +203,6 @@ namespace Power4GoCore
                     }
                 }
             }
-            if (Chains.Any())
-            {
-                var m = Chains.OrderBy(x => x.Chain.Count).Last();
-                return m;
-            }
-            else return null;
         }
         public double GetScore(BasicNetwork NN)
         {
